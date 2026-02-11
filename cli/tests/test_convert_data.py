@@ -61,20 +61,47 @@ class TestJsonToCsv:
         # Empty array should fail
         assert result is False
     
-    def test_non_object_array_fails(self, tmp_path):
+    def test_non_object_array_converts_to_single_column(self, tmp_path):
+        """Test that arrays of primitives are converted to single-column CSV"""
         input_file = tmp_path / "input.json"
         output_file = tmp_path / "output.csv"
         
-        data = ["string1", "string2"]
+        data = ["string1", "string2", "string3"]
         input_file.write_text(json.dumps(data), encoding="utf-8")
         
-        # This currently crashes rather than gracefully failing - it's a bug in the code
-        # For now, test that it raises an error
-        try:
-            result = alfred._convert_data(str(input_file), ".json", "csv", str(output_file))
-            assert False, "Should have raised an exception"
-        except (AttributeError, TypeError):
-            pass  # Expected behavior
+        result = alfred._convert_data(str(input_file), ".json", "csv", str(output_file))
+        
+        assert result is True
+        assert output_file.exists()
+        
+        # Verify single-column CSV with "value" header
+        with open(output_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            assert len(rows) == 3
+            assert rows[0]["value"] == "string1"
+            assert rows[1]["value"] == "string2"
+            assert rows[2]["value"] == "string3"
+    
+    def test_number_array_converts_to_single_column(self, tmp_path):
+        """Test that arrays of numbers are converted to single-column CSV"""
+        input_file = tmp_path / "input.json"
+        output_file = tmp_path / "output.csv"
+        
+        data = [1, 2, 3, 42, 100]
+        input_file.write_text(json.dumps(data), encoding="utf-8")
+        
+        result = alfred._convert_data(str(input_file), ".json", "csv", str(output_file))
+        
+        assert result is True
+        assert output_file.exists()
+        
+        with open(output_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            assert len(rows) == 5
+            assert rows[0]["value"] == "1"
+            assert rows[3]["value"] == "42"
     
     def test_nested_objects(self, tmp_path):
         input_file = tmp_path / "input.json"

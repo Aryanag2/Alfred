@@ -345,8 +345,19 @@ def _convert_data(input_file: str, ext: str, target: str, output_path: str):
             data = json.load(f)
         if isinstance(data, dict): data = [data]
         if not isinstance(data, list) or len(data) == 0:
-            console.print("[red]Error: JSON must be a list of objects for CSV conversion.[/red]")
+            console.print("[red]Error: JSON must be a list or dict for CSV conversion.[/red]")
             return False
+        
+        # Handle list of primitives (convert to single-column CSV)
+        if not isinstance(data[0], dict):
+            with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(["value"])  # Header
+                for item in data:
+                    writer.writerow([item])
+            return True
+        
+        # Handle list of dicts (standard case)
         headers = list(data[0].keys())
         with open(output_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=headers)
