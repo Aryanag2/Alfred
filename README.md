@@ -1,6 +1,8 @@
 # Alfred
 
 **Alfred** is a lightweight, menu-bar utility agent for macOS. It is designed to be your seamless, silent helper for utilitarian tasks, keeping your digital life organized and converted.
+<img width="1169" height="935" alt="Screenshot 2026-02-11 at 11 15 01 AM" src="https://github.com/user-attachments/assets/b1b9a364-3a05-4a33-976a-3fd0208e9ffb" />
+
 
 ## Core Philosophy
 *   **Invisible:** Lives in the menu bar. Out of sight until needed.
