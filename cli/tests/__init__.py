@@ -1,0 +1,1 @@
+# Alfred CLI Test Suite
