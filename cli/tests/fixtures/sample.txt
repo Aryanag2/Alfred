@@ -1,0 +1,5 @@
+This is a sample text file for testing.
+It has multiple lines.
+And some content to summarize.
+
+Alfred is a native utility agent for macOS.
