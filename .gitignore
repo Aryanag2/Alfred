@@ -1,0 +1,58 @@
+# Python
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# Environment
+.env
+*.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift/Xcode
+.build/
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+*.swiftpm
+
+# Logs
+*.log
+alfred_debug.log
+
+# Test artifacts
+output.csv
+.coverage
+htmlcov/
+
+# PyInstaller
+*.spec
+*.manifest
+
+# App bundle (we'll commit the structure but not the binary)
+swift-alfred/Alfred.app/Contents/MacOS/Alfred
+swift-alfred/Alfred.app/Contents/Resources/bin/alfred-cli
+
+# Temporary files
+*.tmp
+.cache/
