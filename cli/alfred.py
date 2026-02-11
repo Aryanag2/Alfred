@@ -99,8 +99,19 @@ def check_command_availability(cmd: str) -> bool:
     return which(cmd) is not None
 
 
-def get_llm_response(prompt: str, retries: int = 2) -> str:
-    """Get LLM response using LiteLLM (supports multiple providers)."""
+def get_llm_response(prompt: str, image_paths: Optional[List[str]] = None, retries: int = 2) -> str:
+    """Get LLM response using LiteLLM (supports multiple providers and vision).
+    
+    Args:
+        prompt: Text prompt for the model
+        image_paths: Optional list of image file paths for vision models
+        retries: Number of retry attempts
+    
+    Returns:
+        str: Model response
+    """
+    import base64
+    
     provider = get_ai_provider()
     model_name = get_ai_model()
     temperature = get_temperature()
@@ -115,8 +126,12 @@ def get_llm_response(prompt: str, retries: int = 2) -> str:
     elif provider == "anthropic":
         model = f"anthropic/{model_name}"  # e.g., anthropic/claude-3-5-sonnet-20241022
         api_base = None
-    elif provider == "google":
-        model = f"google/{model_name}"  # e.g., google/gemini-2.5-flash
+    elif provider == "google" or provider == "gemini":
+        # Handle both "gemini-2.5-flash" and "gemini/gemini-2.5-flash" formats
+        if not model_name.startswith("gemini/"):
+            model = f"gemini/{model_name}"
+        else:
+            model = model_name
         api_base = None
     else:
         # For custom providers, assume format is already correct
@@ -127,10 +142,46 @@ def get_llm_response(prompt: str, retries: int = 2) -> str:
     
     for attempt in range(retries + 1):
         try:
+            # Build message content
+            if image_paths and len(image_paths) > 0:
+                # Vision request with images
+                content_parts = [{"type": "text", "text": prompt}]
+                
+                # Add images
+                for img_path in image_paths[:5]:  # Limit to 5 images
+                    if not os.path.exists(img_path):
+                        logging.warning(f"Image not found: {img_path}")
+                        continue
+                    
+                    # Read and encode image
+                    with open(img_path, "rb") as f:
+                        img_data = base64.b64encode(f.read()).decode("utf-8")
+                    
+                    # Detect image type
+                    ext = Path(img_path).suffix.lower()
+                    mime_map = {
+                        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                        ".png": "image/png", ".gif": "image/gif",
+                        ".webp": "image/webp", ".bmp": "image/bmp"
+                    }
+                    mime_type = mime_map.get(ext, "image/jpeg")
+                    
+                    content_parts.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{img_data}"
+                        }
+                    })
+                
+                message_content = content_parts
+            else:
+                # Text-only request
+                message_content = prompt
+            
             # Build completion request
             kwargs = {
                 "model": model,
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": [{"role": "user", "content": message_content}],
                 "temperature": temperature,
                 "timeout": 120
             }
@@ -667,14 +718,78 @@ def organize(
 
 
 def _ai_organize_plan(path: str, files: list, instructions: str) -> dict:
-    prompt = f"""SYSTEM: You are a file organizer. Output ONLY valid JSON.
+    # Detect image files for vision analysis
+    image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+    image_files = [f for f in files if Path(f).suffix.lower() in image_extensions]
+    image_paths = [os.path.join(path, f) for f in image_files if os.path.exists(os.path.join(path, f))]
+    
+    if instructions:
+        # User provided specific instructions - ONLY follow those
+        if image_paths:
+            prompt = f"""SYSTEM: You are a file organizer with vision capabilities. Output ONLY valid JSON.
+
 FOLDER: "{path}"
-FILES: {files[:50]}
-INSTRUCTIONS: {instructions}
-TASK: Create a plan to organize files into subfolders.
+FILES: {files[:100]}
+USER INSTRUCTIONS: {instructions}
+
+I'm showing you the actual images so you can see their CONTENT (not just filenames).
+Analyze what's actually IN each image to make better organization decisions.
+
+CRITICAL RULES:
+1. Follow ONLY the user's specific instructions above
+2. Use the image content (what you SEE in the images) to make decisions
+3. Only move files that match the user's request based on their content
+4. Leave all other files untouched (do NOT include them in the JSON)
+5. If the user mentions a date, also look at image metadata/content for temporal clues
+6. Return only the files requested, nothing else
+
+OUTPUT FORMAT: JSON where keys are folder names and values are lists of filenames.
+Example: {{"vacation_photos": ["IMG_1234.jpg", "IMG_5678.jpg"]}}
+"""
+        else:
+            prompt = f"""SYSTEM: You are a file organizer. Output ONLY valid JSON.
+FOLDER: "{path}"
+FILES: {files[:100]}
+USER INSTRUCTIONS: {instructions}
+
+CRITICAL RULES:
+1. Follow ONLY the user's specific instructions above
+2. Only move files that match the user's request
+3. Leave all other files untouched (do NOT include them in the JSON)
+4. If the user mentions a date like "nov1st" or "nov 1", look for files from late October or early November
+5. Return only the files requested, nothing else
+
+OUTPUT FORMAT: JSON where keys are folder names and values are lists of filenames.
+Example: {{"folder_name": ["file1.jpg", "file2.jpeg"]}}
+"""
+    else:
+        # No specific instructions - organize everything by category
+        if image_paths:
+            prompt = f"""SYSTEM: You are a file organizer with vision capabilities. Output ONLY valid JSON.
+
+FOLDER: "{path}"
+FILES: {files[:100]}
+
+I'm showing you the actual images so you can analyze their CONTENT.
+Look at what's in each image and organize them into meaningful categories based on what you SEE.
+
+TASK: Organize all files into logical category-based subfolders.
+- For images: Use content-based categories (e.g., "Nature", "People", "Screenshots", "Memes", etc.)
+- For other files: Use type-based categories (Documents, Videos, Music, etc.)
+
+OUTPUT FORMAT: JSON where keys are folder names and values are lists of filenames.
+Example: {{"Nature_Photos": ["sunset.jpg"], "Screenshots": ["screen1.png"], "Documents": ["report.pdf"]}}
+"""
+        else:
+            prompt = f"""SYSTEM: You are a file organizer. Output ONLY valid JSON.
+FOLDER: "{path}"
+FILES: {files[:100]}
+TASK: Organize all files into logical category-based subfolders (Images, Documents, Videos, etc.).
 OUTPUT FORMAT: JSON where keys are folder names and values are lists of filenames.
 """
-    response = get_llm_response(prompt)
+    
+    # Use vision if we have images (limit to 10 for performance)
+    response = get_llm_response(prompt, image_paths=image_paths[:10] if image_paths else None)
     try:
         cleaned = response.strip().replace("```json", "").replace("```", "")
         plan = json.loads(cleaned)
@@ -721,12 +836,37 @@ def rename(
         raise typer.Exit(1)
     
     filenames = [Path(f).name for f in files[:30]]
-    prompt = f"""SYSTEM: File renamer. Output valid JSON map "old_name": "new_name".
+    
+    # Detect image files for vision analysis
+    image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+    image_files = [f for f in files if Path(f).suffix.lower() in image_extensions]
+    
+    if image_files:
+        # Use vision model to analyze images
+        prompt = f"""SYSTEM: You are a file renaming assistant with vision capabilities.
+
+Analyze the provided images and suggest descriptive, clean filenames based on their CONTENT.
+- Look at what's actually IN the image (objects, scenes, people, text, etc.)
+- Create meaningful names that describe the image content
+- Keep original file extensions
+- Use underscores or hyphens for spaces
+- Keep names concise (2-4 words maximum)
+
+Current filenames: {filenames}
+
+OUTPUT: Valid JSON map with "old_filename": "new_filename" pairs.
+Example: {{"IMG_1234.jpg": "sunset_beach.jpg", "photo.png": "golden_retriever.png"}}
+"""
+        console.print(f"[blue]Analyzing {len(image_files)} image(s) with vision...[/blue]")
+        response = get_llm_response(prompt, image_paths=image_files[:5])  # Limit to 5 images
+    else:
+        # Text-only prompt for non-image files
+        prompt = f"""SYSTEM: File renamer. Output valid JSON map "old_name": "new_name".
 FILES: {filenames}
 TASK: Suggest clean names. Keep extensions.
 """
-    console.print(f"[blue]Analyzing {len(files)} file(s)...[/blue]")
-    response = get_llm_response(prompt)
+        console.print(f"[blue]Analyzing {len(files)} file(s)...[/blue]")
+        response = get_llm_response(prompt)
     
     try:
         cleaned = response.strip().replace("```json", "").replace("```", "")

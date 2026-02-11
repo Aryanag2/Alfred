@@ -358,6 +358,29 @@ struct AlfredView: View {
     
     private var logSection: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Copy All button when logs exist
+            if !logs.isEmpty {
+                HStack {
+                    Spacer()
+                    Button {
+                        let allText = logs.joined(separator: "\n")
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(allText, forType: .string)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 9))
+                            Text("Copy All")
+                                .font(.system(size: 9))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                }
+            }
+            
             if logs.isEmpty {
                 Text("Ready.")
                     .font(.system(size: 10))
@@ -443,34 +466,44 @@ struct AlfredView: View {
         if !confirmed { logs.removeAll(); hasPlan = false }
         
         let task = Process()
-        let bundlePath = Bundle.main.bundlePath
-        let cliPath = "\(bundlePath)/Contents/Resources/bin/alfred-cli"
         
-        guard FileManager.default.fileExists(atPath: cliPath) else {
-            logs.append("[ERR] CLI not found at: \(cliPath)")
+        // Use Python directly instead of PyInstaller binary to avoid litellm module issues
+        // Get absolute path to Alfred directory
+        let alfredDir = "/Users/aryangosaliya/Desktop/Alfred"
+        let pythonPath = "\(alfredDir)/cli/venv/bin/python"
+        let scriptPath = "\(alfredDir)/cli/alfred.py"
+        
+        guard FileManager.default.fileExists(atPath: pythonPath) else {
+            logs.append("[ERR] Python not found at: \(pythonPath)")
             isProcessing = false
             return
         }
         
-        task.executableURL = URL(fileURLWithPath: cliPath)
+        guard FileManager.default.fileExists(atPath: scriptPath) else {
+            logs.append("[ERR] Script not found at: \(scriptPath)")
+            isProcessing = false
+            return
+        }
         
-        var args = [String]()
+        task.executableURL = URL(fileURLWithPath: pythonPath)
+        
+        var args = [scriptPath]  // Start with script path
         switch mode {
         case .convert:
-            args = ["convert", paths[0], targetFormat.trimmingCharacters(in: .whitespaces)]
+            args += ["convert", paths[0], targetFormat.trimmingCharacters(in: .whitespaces)]
         case .organize:
-            args = ["organize", paths[0]]
+            args += ["organize", paths[0]]
             if !organizeInstructions.trimmingCharacters(in: .whitespaces).isEmpty {
                 args += ["--instructions", organizeInstructions]
             }
             if confirmed { args += ["--confirm"] }
         case .summarize:
-            args = ["summarize"] + paths
+            args += ["summarize"] + paths
         case .rename:
-            args = ["rename"] + paths
+            args += ["rename"] + paths
             if confirmed { args += ["--confirm"] }
         case .command:
-            args = ["ask", customCommand] + paths
+            args += ["ask", customCommand] + paths
         }
         
         task.arguments = args
@@ -482,8 +515,9 @@ struct AlfredView: View {
         let missing = extra.filter { !current.contains($0) }
         if !missing.isEmpty { env["PATH"] = (missing + [current]).joined(separator: ":") }
         task.environment = env
-        task.currentDirectoryURL = URL(fileURLWithPath: bundlePath)
-            .appendingPathComponent("Contents/Resources/bin")
+        
+        // Set working directory to Alfred/cli
+        task.currentDirectoryURL = URL(fileURLWithPath: "\(alfredDir)/cli")
         
         let pipe = Pipe()
         let errPipe = Pipe()
@@ -520,9 +554,14 @@ struct AlfredView: View {
                     let code = task.terminationStatus
                     if code == 0 {
                         // Check if this was a preview
-                        let outputText = logs.joined(separator: "\n")
-                        if !confirmed && (mode == .organize || mode == .rename) && outputText.contains("preview") {
-                            hasPlan = true
+                        let outputText = logs.joined(separator: "\n").lowercased()
+                        if !confirmed && (mode == .organize || mode == .rename) {
+                            // Check for preview indicators
+                            if outputText.contains("preview") || 
+                               outputText.contains("plan:") || 
+                               outputText.contains("use --confirm") {
+                                hasPlan = true
+                            }
                         }
                     } else if code != 15 && code != 9 {
                         logs.append("[ERR] Exit code: \(code)")
@@ -547,14 +586,19 @@ struct AlfredView: View {
         logs.append("Installing \(tool)... (this may take a minute)")
         
         let task = Process()
-        let bundlePath = Bundle.main.bundlePath
-        let cliPath = "\(bundlePath)/Contents/Resources/bin/alfred-cli"
-        task.executableURL = URL(fileURLWithPath: cliPath)
-        task.arguments = ["install", tool]
+        
+        // Use Python directly instead of PyInstaller binary
+        let alfredDir = "/Users/aryangosaliya/Desktop/Alfred"
+        let pythonPath = "\(alfredDir)/cli/venv/bin/python"
+        let scriptPath = "\(alfredDir)/cli/alfred.py"
+        
+        task.executableURL = URL(fileURLWithPath: pythonPath)
+        task.arguments = [scriptPath, "install", tool]
         
         // Environment
         var env = ProcessInfo.processInfo.environment
         task.environment = env
+        task.currentDirectoryURL = URL(fileURLWithPath: "\(alfredDir)/cli")
         
         let pipe = Pipe()
         let errPipe = Pipe()
