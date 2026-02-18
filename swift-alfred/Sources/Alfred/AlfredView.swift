@@ -20,18 +20,20 @@ final class LockedArray: @unchecked Sendable {
 struct AlfredView: View {
     var dismissAction: (() -> Void)? = nil
     
+    // State
     @State private var mode: Mode = .convert
     @State private var paths: [String] = []
-    @State private var targetFormat: String = ""
-    @State private var customCommand: String = ""
-    @State private var organizeInstructions: String = ""
+    @State private var userQuery: String = ""
     @State private var logs: [String] = []
     @State private var isProcessing: Bool = false
     @State private var showFilePicker: Bool = false
     @State private var activeProcess: Process? = nil
     @State private var isDropTargeted: Bool = false
-    @State private var hasPlan: Bool = false
     @State private var missingTool: String? = nil
+    
+    // Agent plan state
+    @State private var pendingPlan: String? = nil          // raw JSON from dispatch
+    @State private var pendingExplanation: String? = nil   // human-readable explanation
     
     enum Mode: String, CaseIterable {
         case convert = "Convert"
@@ -50,12 +52,32 @@ struct AlfredView: View {
             }
         }
         
+        var agentName: String {
+            switch self {
+            case .convert: return "convert"
+            case .organize: return "organize"
+            case .summarize: return "summarize"
+            case .rename: return "rename"
+            case .command: return "command"
+            }
+        }
+        
+        var placeholder: String {
+            switch self {
+            case .convert: return "e.g. make this a pdf, shrink this image, convert to mp3..."
+            case .organize: return "e.g. sort by type, put screenshots in a folder, clean this up..."
+            case .summarize: return "e.g. summarize this, explain this code, compare these files..."
+            case .rename: return "e.g. clean up these names, rename based on content, add dates..."
+            case .command: return "e.g. compress all images, find duplicates, merge these PDFs..."
+            }
+        }
+        
         var hint: String {
             switch self {
-            case .convert: return "Select a file and target format"
-            case .organize: return "Select a folder to organize"
-            case .summarize: return "Drop one or more files for batch summary"
-            case .rename: return "Drop multiple files for batch rename"
+            case .convert: return "Drop a file and describe the conversion"
+            case .organize: return "Drop a folder and describe how to organize"
+            case .summarize: return "Drop files and describe the summary you want"
+            case .rename: return "Drop files and describe how to rename them"
             case .command: return "Describe what Alfred should do"
             }
         }
@@ -75,13 +97,13 @@ struct AlfredView: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         if mode != .command || !paths.isEmpty { fileInputSection }
-                        modeSpecificInputs
+                        queryInput
                         actionButtons
                     }
                     .padding(.horizontal, 14)
                     .padding(.top, 10)
                 }
-                .frame(maxHeight: mode == .command && paths.isEmpty ? 100 : 180)
+                .frame(maxHeight: mode == .command && paths.isEmpty ? 140 : 200)
             }
             
             logSection
@@ -169,8 +191,9 @@ struct AlfredView: View {
                         mode = m
                         paths = []
                         logs.removeAll()
-                        hasPlan = false
-                        organizeInstructions = ""
+                        userQuery = ""
+                        pendingPlan = nil
+                        pendingExplanation = nil
                         missingTool = nil
                     }
                 } label: {
@@ -205,7 +228,8 @@ struct AlfredView: View {
                 if !paths.isEmpty {
                     Button {
                         paths = []
-                        hasPlan = false
+                        pendingPlan = nil
+                        pendingExplanation = nil
                         logs.removeAll()
                     } label: {
                         Image(systemName: "xmark.circle")
@@ -271,35 +295,19 @@ struct AlfredView: View {
         }
     }
     
-    // MARK: - Mode-Specific Inputs
+    // MARK: - Natural Language Query Input
     
-    @ViewBuilder
-    private var modeSpecificInputs: some View {
-        switch mode {
-        case .convert:
-            TextField("Target format (e.g. pdf, mp3, json)", text: $targetFormat)
-                .textFieldStyle(.roundedBorder)
+    private var queryInput: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            TextEditor(text: $userQuery)
                 .font(.system(size: 11))
-        case .organize:
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Instructions (optional)")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-                TextField("e.g. put screenshots in Screenshots...", text: $organizeInstructions, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 11))
-                    .lineLimit(2...3)
-            }
-        case .command:
-            TextEditor(text: $customCommand)
-                .font(.system(size: 11, design: .monospaced))
-                .frame(height: 50)
+                .frame(height: 44)
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.2)))
                 .overlay(
                     Group {
-                        if customCommand.isEmpty {
-                            Text("e.g. merge these two PDFs...")
-                                .font(.system(size: 11))
+                        if userQuery.isEmpty {
+                            Text(mode.placeholder)
+                                .font(.system(size: 10))
                                 .foregroundColor(.secondary.opacity(0.5))
                                 .padding(.leading, 5)
                                 .padding(.top, 8)
@@ -308,48 +316,84 @@ struct AlfredView: View {
                     },
                     alignment: .topLeading
                 )
-        default:
-            EmptyView()
         }
     }
     
     // MARK: - Action Buttons
     
     private var actionButtons: some View {
-        HStack(spacing: 8) {
-            if hasPlan {
-                Button {
-                    performAction(confirmed: true)
-                } label: {
-                    Text("Confirm")
-                        .font(.system(size: 12, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
+        VStack(spacing: 6) {
+            // Show pending plan explanation if we have one
+            if let explanation = pendingExplanation {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "brain.head.profile")
+                            .font(.system(size: 10))
+                            .foregroundColor(.blue)
+                        Text("Alfred's plan:")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.blue)
+                    }
+                    Text(explanation)
+                        .font(.system(size: 10))
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
-                .disabled(isProcessing)
-            } else {
-                Button {
-                    performAction(confirmed: false)
-                } label: {
-                    Text(isProcessing ? "Working..." : actionLabel)
-                        .font(.system(size: 12, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.blue)
-                .disabled(isProcessing || !isReady)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.blue.opacity(0.08))
+                .cornerRadius(6)
             }
             
-            if isProcessing {
-                Button { cancelAction() } label: {
-                    Image(systemName: "stop.circle.fill")
-                        .font(.system(size: 16))
+            HStack(spacing: 8) {
+                if pendingPlan != nil {
+                    // Two-button: Confirm / Reject
+                    Button {
+                        rejectPlan()
+                    } label: {
+                        Text("Reject")
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                    .disabled(isProcessing)
+                    
+                    Button {
+                        confirmPlan()
+                    } label: {
+                        Text("Confirm")
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.green)
+                    .disabled(isProcessing)
+                } else {
+                    // Single button: Ask Alfred
+                    Button {
+                        askAgent()
+                    } label: {
+                        Text(isProcessing ? "Thinking..." : "Ask Alfred")
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    .disabled(isProcessing || !isReady)
                 }
-                .buttonStyle(.plain)
-                .foregroundColor(.red)
+                
+                if isProcessing {
+                    Button { cancelAction() } label: {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.system(size: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.red)
+                }
             }
         }
     }
@@ -358,7 +402,6 @@ struct AlfredView: View {
     
     private var logSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Copy All button when logs exist
             if !logs.isEmpty {
                 HStack {
                     Spacer()
@@ -381,11 +424,13 @@ struct AlfredView: View {
                 }
             }
             
-            if logs.isEmpty {
+            if logs.isEmpty && pendingPlan == nil {
                 Text("Ready.")
                     .font(.system(size: 10))
                     .foregroundColor(.secondary.opacity(0.5))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if logs.isEmpty {
+                Spacer()
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -425,21 +470,8 @@ struct AlfredView: View {
     
     var isReady: Bool {
         switch mode {
-        case .convert: return !paths.isEmpty && !targetFormat.isEmpty
-        case .organize: return !paths.isEmpty
-        case .summarize: return !paths.isEmpty
-        case .rename: return !paths.isEmpty
-        case .command: return !customCommand.isEmpty
-        }
-    }
-    
-    var actionLabel: String {
-        switch mode {
-        case .convert: return "Convert"
-        case .organize: return "Preview Plan"
-        case .summarize: return "Summarize"
-        case .rename: return "Preview Renames"
-        case .command: return "Run"
+        case .command: return !userQuery.isEmpty
+        default: return !paths.isEmpty && !userQuery.isEmpty
         }
     }
     
@@ -461,63 +493,118 @@ struct AlfredView: View {
         }
     }
     
-    func performAction(confirmed: Bool) {
+    /// Step 1: Send the NL query to the agent via `dispatch`. Shows plan for confirmation.
+    func askAgent() {
         isProcessing = true
-        if !confirmed { logs.removeAll(); hasPlan = false }
+        logs.removeAll()
+        pendingPlan = nil
+        pendingExplanation = nil
         
-        let task = Process()
-        
-        // Use Python directly instead of PyInstaller binary to avoid litellm module issues
-        // Get absolute path to Alfred directory
-        let alfredDir = "/Users/aryangosaliya/Desktop/Alfred"
-        let pythonPath = "\(alfredDir)/cli/venv/bin/python"
-        let scriptPath = "\(alfredDir)/cli/alfred.py"
+        let resourcePath = Bundle.main.resourcePath ?? ""
+        let pythonPath = "\(resourcePath)/python/venv/bin/python3"
+        let scriptPath = "\(resourcePath)/alfred.py"
         
         guard FileManager.default.fileExists(atPath: pythonPath) else {
-            logs.append("[ERR] Python not found at: \(pythonPath)")
+            logs.append("[ERR] Embedded Python not found. Rebuild with: ./build.sh")
             isProcessing = false
             return
         }
         
-        guard FileManager.default.fileExists(atPath: scriptPath) else {
-            logs.append("[ERR] Script not found at: \(scriptPath)")
-            isProcessing = false
-            return
-        }
-        
+        let task = Process()
         task.executableURL = URL(fileURLWithPath: pythonPath)
         
-        var args = [scriptPath]  // Start with script path
-        switch mode {
-        case .convert:
-            args += ["convert", paths[0], targetFormat.trimmingCharacters(in: .whitespaces)]
-        case .organize:
-            args += ["organize", paths[0]]
-            if !organizeInstructions.trimmingCharacters(in: .whitespaces).isEmpty {
-                args += ["--instructions", organizeInstructions]
-            }
-            if confirmed { args += ["--confirm"] }
-        case .summarize:
-            args += ["summarize"] + paths
-        case .rename:
-            args += ["rename"] + paths
-            if confirmed { args += ["--confirm"] }
-        case .command:
-            args += ["ask", customCommand] + paths
-        }
-        
+        var args = [scriptPath, "dispatch", mode.agentName, userQuery]
+        args += paths
         task.arguments = args
         
-        // Environment
         var env = ProcessInfo.processInfo.environment
-        let extra = ["/opt/homebrew/bin", "/usr/local/bin", "/opt/homebrew/sbin"]
+        env["PYTHONHOME"] = "\(resourcePath)/python"
+        let extra = ["\(resourcePath)/python/venv/bin", "/opt/homebrew/bin", "/usr/local/bin", "/opt/homebrew/sbin"]
         let current = env["PATH"] ?? "/usr/bin:/bin"
         let missing = extra.filter { !current.contains($0) }
         if !missing.isEmpty { env["PATH"] = (missing + [current]).joined(separator: ":") }
         task.environment = env
+        task.currentDirectoryURL = URL(fileURLWithPath: resourcePath)
         
-        // Set working directory to Alfred/cli
-        task.currentDirectoryURL = URL(fileURLWithPath: "\(alfredDir)/cli")
+        let pipe = Pipe()
+        let errPipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = errPipe
+        activeProcess = task
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                try task.run()
+                let outData = pipe.fileHandleForReading.readDataToEndOfFile()
+                let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+                task.waitUntilExit()
+                
+                DispatchQueue.main.async {
+                    // Capture stderr warnings but don't show as errors unless dispatch failed
+                    let errText = String(data: errData, encoding: .utf8) ?? ""
+                    
+                    if let out = String(data: outData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !out.isEmpty {
+                        // Try to parse as JSON plan
+                        if let data = out.data(using: .utf8),
+                           let plan = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                            let action = plan["action"] as? String ?? "none"
+                            let explanation = plan["explanation"] as? String ?? "No explanation provided."
+                            
+                            if action == "none" {
+                                logs.append(explanation)
+                            } else {
+                                pendingPlan = out
+                                pendingExplanation = explanation
+                            }
+                        } else {
+                            // Not JSON — show raw output
+                            logs.append(contentsOf: out.components(separatedBy: .newlines).filter { !$0.isEmpty })
+                        }
+                    } else if task.terminationStatus != 0 {
+                        logs.append("[ERR] Agent failed.")
+                        if !errText.isEmpty {
+                            logs.append(contentsOf: errText.components(separatedBy: .newlines)
+                                .filter { !$0.isEmpty }
+                                .map { "[ERR] \($0)" })
+                        }
+                    }
+                    
+                    isProcessing = false
+                    activeProcess = nil
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    logs.append("[ERR] \(error.localizedDescription)")
+                    isProcessing = false
+                    activeProcess = nil
+                }
+            }
+        }
+    }
+    
+    /// Step 2a: User confirmed the plan. Send it to `execute`.
+    func confirmPlan() {
+        guard let planJSON = pendingPlan else { return }
+        
+        isProcessing = true
+        pendingExplanation = nil
+        
+        let resourcePath = Bundle.main.resourcePath ?? ""
+        let pythonPath = "\(resourcePath)/python/venv/bin/python3"
+        let scriptPath = "\(resourcePath)/alfred.py"
+        
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: pythonPath)
+        task.arguments = [scriptPath, "execute", planJSON]
+        
+        var env = ProcessInfo.processInfo.environment
+        env["PYTHONHOME"] = "\(resourcePath)/python"
+        let extra = ["\(resourcePath)/python/venv/bin", "/opt/homebrew/bin", "/usr/local/bin", "/opt/homebrew/sbin"]
+        let current = env["PATH"] ?? "/usr/bin:/bin"
+        let missing = extra.filter { !current.contains($0) }
+        if !missing.isEmpty { env["PATH"] = (missing + [current]).joined(separator: ":") }
+        task.environment = env
+        task.currentDirectoryURL = URL(fileURLWithPath: resourcePath)
         
         let pipe = Pipe()
         let errPipe = Pipe()
@@ -548,36 +635,36 @@ struct AlfredView: View {
                         }
                     }
                     if let err = String(data: errData, encoding: .utf8), !err.isEmpty {
-                        logs.append(contentsOf: err.components(separatedBy: .newlines).filter { !$0.isEmpty }.map { "[ERR] \($0)" })
+                        logs.append(contentsOf: err.components(separatedBy: .newlines)
+                            .filter { !$0.isEmpty }
+                            .map { "[ERR] \($0)" })
                     }
                     
                     let code = task.terminationStatus
-                    if code == 0 {
-                        // Check if this was a preview
-                        let outputText = logs.joined(separator: "\n").lowercased()
-                        if !confirmed && (mode == .organize || mode == .rename) {
-                            // Check for preview indicators
-                            if outputText.contains("preview") || 
-                               outputText.contains("plan:") || 
-                               outputText.contains("use --confirm") {
-                                hasPlan = true
-                            }
-                        }
-                    } else if code != 15 && code != 9 {
+                    if code != 0 && code != 15 && code != 9 {
                         logs.append("[ERR] Exit code: \(code)")
                     }
                     
+                    pendingPlan = nil
                     isProcessing = false
                     activeProcess = nil
                 }
             } catch {
                 DispatchQueue.main.async {
                     logs.append("[ERR] \(error.localizedDescription)")
+                    pendingPlan = nil
                     isProcessing = false
                     activeProcess = nil
                 }
             }
         }
+    }
+    
+    /// Step 2b: User rejected the plan.
+    func rejectPlan() {
+        pendingPlan = nil
+        pendingExplanation = nil
+        logs.append("[INFO] Plan rejected. Modify your request and try again.")
     }
     
     func installTool(_ tool: String) {
@@ -587,18 +674,16 @@ struct AlfredView: View {
         
         let task = Process()
         
-        // Use Python directly instead of PyInstaller binary
-        let alfredDir = "/Users/aryangosaliya/Desktop/Alfred"
-        let pythonPath = "\(alfredDir)/cli/venv/bin/python"
-        let scriptPath = "\(alfredDir)/cli/alfred.py"
+        let resourcePath = Bundle.main.resourcePath ?? ""
+        let pythonPath = "\(resourcePath)/python/venv/bin/python3"
+        let scriptPath = "\(resourcePath)/alfred.py"
         
         task.executableURL = URL(fileURLWithPath: pythonPath)
         task.arguments = [scriptPath, "install", tool]
         
-        // Environment
-        var env = ProcessInfo.processInfo.environment
+        let env = ProcessInfo.processInfo.environment
         task.environment = env
-        task.currentDirectoryURL = URL(fileURLWithPath: "\(alfredDir)/cli")
+        task.currentDirectoryURL = URL(fileURLWithPath: resourcePath)
         
         let pipe = Pipe()
         let errPipe = Pipe()
@@ -608,15 +693,8 @@ struct AlfredView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 try task.run()
-                // Read continuously for progress updates
-                let outHandle = pipe.fileHandleForReading
-                let errHandle = errPipe.fileHandleForReading
-                
-                // For install, we want to see output as it happens (for progress bars if supported, or just text)
-                // But CLI Rich output might buffer. We'll read to end for now to keep it simple.
-                let outData = outHandle.readDataToEndOfFile()
-                let errData = errHandle.readDataToEndOfFile()
-                
+                let outData = pipe.fileHandleForReading.readDataToEndOfFile()
+                let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
                 task.waitUntilExit()
                 
                 DispatchQueue.main.async {
@@ -649,6 +727,7 @@ struct AlfredView: View {
         if log.contains("[ERR]") || log.contains("Error") { return .red }
         if log.contains("Done") || log.contains("Output:") || log.contains("Success") || log.contains("[SUCCESS]") { return .green }
         if log.contains("[WARN]") || log.contains("preview") || log.contains("Skipped") { return .orange }
+        if log.contains("[INFO]") { return .secondary }
         if log.contains("[NEED_INSTALL]") { return .yellow }
         if log.starts(with: "  ") && log.contains("->") { return .cyan }
         if log.starts(with: "$") || log.contains("Converting") || log.contains("Summarizing") || log.contains("Analyzing") || log.contains("Installing") { return .blue }
@@ -695,7 +774,8 @@ struct AlfredView: View {
                 let existing = Set(paths)
                 paths.append(contentsOf: dropped.filter { !existing.contains($0) })
             }
-            hasPlan = false
+            pendingPlan = nil
+            pendingExplanation = nil
             logs.removeAll()
             missingTool = nil
         }
