@@ -5,3 +5,23 @@ requests
 pytest
 pytest-mock
 litellm
+
+# --- Bundled conversion libraries ---
+# Images
+Pillow
+pillow-heif
+
+# Audio
+pydub
+
+# Documents
+python-docx
+markdown
+fpdf2
+pypdf
+ebooklib
+
+# Data
+PyYAML
+openpyxl
+toml
