@@ -208,7 +208,8 @@ María,❤️"""
 class TestUnsupportedConversions:
     """Test unsupported format pairs"""
     
-    def test_json_to_yaml_not_implemented(self, tmp_path):
+    def test_json_to_yaml_implemented(self, tmp_path):
+        """JSON -> YAML is now supported via bundled PyYAML library."""
         input_file = tmp_path / "input.json"
         output_file = tmp_path / "output.yaml"
         
@@ -216,7 +217,10 @@ class TestUnsupportedConversions:
         
         result = alfred._convert_data(str(input_file), ".json", "yaml", str(output_file))
         
-        assert result is False
+        assert result is True
+        content = output_file.read_text(encoding="utf-8")
+        assert "key:" in content
+        assert "value" in content
     
     def test_csv_to_xml_not_implemented(self, tmp_path):
         input_file = tmp_path / "input.csv"

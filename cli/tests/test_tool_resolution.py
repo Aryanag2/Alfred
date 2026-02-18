@@ -180,7 +180,12 @@ class TestConversionMap:
         assert ".csv->.json" in alfred.CONVERSION_MAP
     
     def test_all_entries_have_valid_tools(self):
-        valid_tools = {"python", "sips", "afconvert", "textutil", "pandoc", "ffmpeg", "magick"}
+        valid_tools = {
+            "python", "sips", "afconvert", "textutil", "pandoc", "ffmpeg", "magick",
+            # Bundled Python library tools
+            "pillow", "pydub", "py_docx", "py_markdown", "py_pdf",
+            "py_yaml", "py_xlsx", "py_toml", "py_epub",
+        }
         for key, tool_list in alfred.CONVERSION_MAP.items():
             assert isinstance(tool_list, list), f"{key} should map to a list"
             assert len(tool_list) > 0, f"{key} has empty tool list"
