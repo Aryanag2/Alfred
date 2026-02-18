@@ -39,7 +39,7 @@ IMG_1234.jpg → [AI looks at image] → golden_retriever_playing.jpg
 ### Option 2: Via CLI
 
 ```bash
-cd /Users/aryangosaliya/Desktop/Alfred/cli
+cd cli
 source venv/bin/activate
 
 # Rename images (preview)
@@ -98,7 +98,7 @@ Alfred **looked at the image**, saw it was an automotive flyer, and suggested a 
 ```env
 AI_PROVIDER=gemini
 AI_MODEL=gemini/gemini-2.5-flash
-GOOGLE_API_KEY=AIzaSyBf-vPYNzwCK82F5PXRpAa25a7wFPEWGjs
+GOOGLE_API_KEY=your-google-api-key-here
 ```
 
 ---

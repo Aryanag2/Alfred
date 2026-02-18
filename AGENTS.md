@@ -12,10 +12,11 @@ You are **Alfred**, a highly efficient, polite, and precise digital assistant.
 *   **Privacy:** This project uses local AI (Ollama). Ensure all code respects user privacy and processes files locally.
 *   **Dependencies:** Keep the Python backend lightweight.
     *   Prefer: Standard Library (`os`, `shutil`, `json`, `subprocess`).
-    *   Acceptable: `typer`, `rich`, `requests`.
-    *   Avoid: Cloud-based AI SDKs (unless optional).
+    *   Acceptable: `typer`, `rich`, `requests`, `litellm` (AI abstraction), `python-dotenv`.
+    *   Conversion libraries (bundled): `Pillow`, `pillow-heif`, `pydub`, `python-docx`, `fpdf2`, `pypdf`, `ebooklib`, `PyYAML`, `openpyxl`, `toml`.
+    *   Avoid: Direct cloud-specific AI SDKs (use `litellm` instead for provider-agnostic access).
 
-## 3. coding Standards
+## 3. Coding Standards
 *   **Python (CLI):**
     *   Use type hints (`def func(a: str) -> int:`).
     *   Use `pathlib` over `os.path`.

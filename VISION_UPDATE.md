@@ -203,7 +203,7 @@ Vision features work with:
 ```env
 AI_PROVIDER=gemini
 AI_MODEL=gemini/gemini-2.5-flash
-GOOGLE_API_KEY=AIzaSyBf-vPYNzwCK82F5PXRpAa25a7wFPEWGjs
+GOOGLE_API_KEY=your-google-api-key-here
 ```
 
 ---
@@ -338,12 +338,13 @@ python alfred.py organize ~/Downloads --confirm
 
 **Upgrading:**
 ```bash
-cd /Users/aryangosaliya/Desktop/Alfred
-
 # Pull latest code
 git pull
 
-# Rebuild Swift app
+# Rebuild
+./build.sh
+
+# Or to rebuild only the Swift app:
 cd swift-alfred
 swift build -c release
 cp .build/release/Alfred Alfred.app/Contents/MacOS/Alfred

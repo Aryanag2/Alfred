@@ -2,7 +2,7 @@
 
 **Last Updated:** February 10, 2026  
 **Status:** ✅ Production Ready - FULLY OPERATIONAL  
-**Test Coverage:** 160/160 tests passing  
+**Test Coverage:** 192/192 tests passing  
 **GitHub:** https://github.com/Aryanag2/Alfred
 
 ---
@@ -11,8 +11,8 @@
 
 Alfred is a **production-ready** macOS menu bar utility agent with:
 - Multi-provider AI support (Ollama, OpenAI, Anthropic, Google Gemini, 100+ more)
-- Comprehensive test suite (160 tests, 100% passing)
-- Clean git history (28 commits)
+- Comprehensive test suite (192 tests, 100% passing)
+- Clean git history (30 commits)
 - Complete documentation
 - CI/CD pipeline (GitHub Actions)
 - MIT License
@@ -24,9 +24,9 @@ Alfred is a **production-ready** macOS menu bar utility agent with:
 
 ### Code Statistics
 - **Total Files:** 32 tracked files
-- **Lines of Code:** ~4,800 lines
+- **Lines of Code:** ~6,500 lines
 - **Test Files:** 6 comprehensive test suites
-- **Test Coverage:** 160 tests, all passing
+- **Test Coverage:** 192 tests, all passing
 - **Languages:** Python (CLI), Swift (UI)
 
 ### Repository Health
@@ -64,7 +64,7 @@ Alfred is a **production-ready** macOS menu bar utility agent with:
 
 ### Python Backend (`cli/alfred.py`)
 - **Framework:** Typer (CLI), Rich (output), LiteLLM (AI)
-- **Lines of Code:** 770 lines
+- **Lines of Code:** ~1,800 lines
 - **Key Functions:**
   - `get_llm_response()` - Multi-provider AI integration
   - `_convert_data()` - Data format conversion (fixed bug)
@@ -82,8 +82,8 @@ Alfred is a **production-ready** macOS menu bar utility agent with:
 - `test_tool_resolution.py` - 39 tests for conversion engine
 - `test_convert_data.py` - 20 tests for JSON/CSV conversion
 - `test_llm.py` - 19 tests for AI integration
-- `test_commands.py` - 14 tests for CLI commands
-- **Total:** 160 tests, all passing
+- `test_commands.py` - CLI command integration tests
+- **Total:** 192 tests, all passing
 
 ---
 
@@ -132,7 +132,7 @@ Alfred is a **production-ready** macOS menu bar utility agent with:
 AI_PROVIDER=gemini
 AI_MODEL=gemini/gemini-2.5-flash
 TEMPERATURE=0.7
-GOOGLE_API_KEY=AIzaSyBf-vPYNzwCK82F5PXRpAa25a7wFPEWGjs
+GOOGLE_API_KEY=your-google-api-key-here
 ```
 
 **Verification:**
@@ -241,7 +241,7 @@ GOOGLE_API_KEY=AIzaSyBf-vPYNzwCK82F5PXRpAa25a7wFPEWGjs
 * eac6264 Add data conversion tests (19 tests)
 ```
 
-**Total Commits:** 28 progressive commits showing clean development history
+**Total Commits:** 30 progressive commits showing clean development history
 
 ---
 
@@ -250,7 +250,7 @@ GOOGLE_API_KEY=AIzaSyBf-vPYNzwCK82F5PXRpAa25a7wFPEWGjs
 ### `.env` (AI Provider Settings)
 ```bash
 AI_PROVIDER=ollama           # or openai, anthropic, google
-AI_MODEL=qwen2.5-coder:1.5b  # Model name
+AI_MODEL=qwen3:4b             # Model name
 TEMPERATURE=0.2              # Creativity control
 OLLAMA_API_BASE=http://localhost:11434
 
@@ -262,12 +262,11 @@ OLLAMA_API_BASE=http://localhost:11434
 
 ### `requirements.txt` (Python Dependencies)
 ```
-typer>=0.9.0
-rich>=13.0.0
-litellm>=1.0.0
-pillow>=10.0.0
-requests>=2.31.0
-python-dotenv>=1.0.0
+typer, rich, python-dotenv, requests, litellm
+Pillow, pillow-heif, pydub
+python-docx, markdown, fpdf2, pypdf, ebooklib
+PyYAML, openpyxl, toml
+pytest, pytest-mock
 ```
 
 ---
@@ -319,8 +318,8 @@ python alfred.py rename photo.jpg
 
 ### Build macOS App
 ```bash
-./dev.sh
-# App will be in build/ folder
+./build.sh
+# App will be in swift-alfred/Alfred.app
 ```
 
 ### Switch AI Providers
@@ -328,7 +327,7 @@ Edit `cli/.env`:
 ```bash
 # Local (Ollama)
 AI_PROVIDER=ollama
-AI_MODEL=qwen2.5-coder:1.5b
+AI_MODEL=qwen3:4b
 
 # OpenAI
 AI_PROVIDER=openai
@@ -377,7 +376,7 @@ OPENAI_API_KEY=sk-...
 ## Project Health Score: 9.5/10
 
 **Strengths:**
-- ✅ 160/160 tests passing
+- ✅ 192/192 tests passing
 - ✅ Clean architecture
 - ✅ Comprehensive documentation
 - ✅ CI/CD configured
@@ -396,7 +395,7 @@ OPENAI_API_KEY=sk-...
 
 Alfred is **production-ready** and fully functional. The project demonstrates:
 - Professional software engineering practices
-- Comprehensive testing (160 tests)
+- Comprehensive testing (192 tests)
 - Clean git history
 - Modern Python practices
 - Native macOS integration

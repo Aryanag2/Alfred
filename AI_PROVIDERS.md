@@ -186,7 +186,7 @@ python alfred.py ask "What is 2+2?"
 | Google | gemini-2.5-flash | Free tier | Very Fast | 1M tokens/day free |
 | Google | gemini-2.5-pro | $1.25/$5.00 | Fast | Good value |
 
-*Prices as of Feb 2025. Check provider websites for current pricing.*
+*Prices as of Feb 2026. Check provider websites for current pricing.*
 
 ## Recommendations
 
