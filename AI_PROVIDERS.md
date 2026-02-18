@@ -55,11 +55,11 @@ TEMPERATURE=0.2
 ```
 
 **Popular Ollama Models:**
-- `qwen3:4b` - Fast, multilingual (recommended)
-- `llama3.2` - Meta's Llama 3.2
-- `deepseek-r1` - DeepSeek R1 with reasoning
-- `gemma2` - Google's Gemma 2
-- `mistral` - Mistral AI
+- `qwen3:4b` - Fast, multilingual (recommended default)
+- `llama3.2` - Meta's Llama 3.2 (1B/3B, very lightweight)
+- `deepseek-r1` - DeepSeek R1 with reasoning (1.5B–671B)
+- `gemma3` - Google's Gemma 3 (vision-capable, 1B–27B)
+- `mistral` - Mistral 7B
 
 ### 2. OpenAI (GPT-4, GPT-3.5)
 
@@ -71,7 +71,7 @@ TEMPERATURE=0.2
 **Configuration (`cli/.env`):**
 ```bash
 AI_PROVIDER=openai
-AI_MODEL=gpt-4o  # or gpt-4o-mini, gpt-3.5-turbo
+AI_MODEL=gpt-4.1-mini  # or gpt-4.1, gpt-4.1-nano
 TEMPERATURE=0.2
 
 # Add your API key
@@ -79,10 +79,11 @@ OPENAI_API_KEY=sk-...
 ```
 
 **Available Models:**
-- `gpt-4o` - Latest GPT-4 Optimized
-- `gpt-4o-mini` - Faster, cheaper GPT-4
-- `gpt-3.5-turbo` - Fast and affordable
-- `o1` - Advanced reasoning model
+- `gpt-4.1` - Smartest non-reasoning model (recommended)
+- `gpt-4.1-mini` - Faster, cost-efficient (best value)
+- `gpt-4.1-nano` - Fastest, cheapest GPT-4.1
+- `gpt-4o` - Previous generation, still solid
+- `o4-mini` - Fast reasoning model
 
 ### 3. Anthropic (Claude)
 
@@ -94,7 +95,7 @@ OPENAI_API_KEY=sk-...
 **Configuration (`cli/.env`):**
 ```bash
 AI_PROVIDER=anthropic
-AI_MODEL=claude-3-5-sonnet-20241022  # Latest Claude 3.5 Sonnet
+AI_MODEL=claude-sonnet-4-6  # Latest Claude Sonnet
 TEMPERATURE=0.2
 
 # Add your API key
@@ -102,9 +103,9 @@ ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 **Available Models:**
-- `claude-3-5-sonnet-20241022` - Latest Sonnet (recommended)
-- `claude-3-5-haiku-20241022` - Fast, affordable
-- `claude-3-opus-20240229` - Most capable
+- `claude-opus-4-6` - Most intelligent, best for complex tasks
+- `claude-sonnet-4-6` - Best balance of speed and intelligence (recommended)
+- `claude-haiku-4-5` - Fastest, most affordable
 
 ### 4. Google (Gemini)
 
@@ -124,9 +125,9 @@ GOOGLE_API_KEY=...
 ```
 
 **Available Models:**
-- `gemini-2.5-flash` - Fast and efficient
-- `gemini-2.5-pro` - More capable
-- `gemini-1.5-pro` - Previous generation
+- `gemini-2.5-flash` - Fast, efficient, free tier available (recommended)
+- `gemini-2.5-pro` - Most capable Gemini model
+- `gemini-2.0-flash` - Previous generation, still fast
 
 ## Switching Providers
 
@@ -140,7 +141,7 @@ AI_MODEL=qwen3:4b
 
 # After (OpenAI)
 AI_PROVIDER=openai
-AI_MODEL=gpt-4o
+AI_MODEL=gpt-4.1-mini
 OPENAI_API_KEY=sk-...
 ```
 
@@ -148,11 +149,11 @@ OPENAI_API_KEY=sk-...
 ```bash
 # Before (OpenAI)
 AI_PROVIDER=openai
-AI_MODEL=gpt-4o
+AI_MODEL=gpt-4.1-mini
 
 # After (Anthropic)
 AI_PROVIDER=anthropic
-AI_MODEL=claude-3-5-sonnet-20241022
+AI_MODEL=claude-sonnet-4-6
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
@@ -179,12 +180,14 @@ python alfred.py ask "What is 2+2?"
 | Provider | Model | Cost (per 1M tokens) | Speed | Notes |
 |----------|-------|---------------------|-------|-------|
 | Ollama | Any | **Free** (local) | Fast | Requires local GPU/CPU |
-| OpenAI | gpt-4o-mini | $0.15/$0.60 | Very Fast | Best value |
-| OpenAI | gpt-4o | $2.50/$10.00 | Fast | Most capable |
-| Anthropic | claude-3-5-haiku | $0.80/$4.00 | Very Fast | Fast responses |
-| Anthropic | claude-3-5-sonnet | $3.00/$15.00 | Fast | Excellent quality |
+| OpenAI | gpt-4.1-nano | $0.10/$0.40 | Fastest | Most affordable OpenAI |
+| OpenAI | gpt-4.1-mini | $0.40/$1.60 | Very Fast | Best value |
+| OpenAI | gpt-4.1 | $2.00/$8.00 | Fast | Smartest non-reasoning |
+| Anthropic | claude-haiku-4-5 | $1.00/$5.00 | Very Fast | Fast, affordable |
+| Anthropic | claude-sonnet-4-6 | $3.00/$15.00 | Fast | Best balance (recommended) |
+| Anthropic | claude-opus-4-6 | $5.00/$25.00 | Moderate | Most intelligent |
 | Google | gemini-2.5-flash | Free tier | Very Fast | 1M tokens/day free |
-| Google | gemini-2.5-pro | $1.25/$5.00 | Fast | Good value |
+| Google | gemini-2.5-pro | $1.25/$10.00 | Fast | Most capable Gemini |
 
 *Prices as of Feb 2026. Check provider websites for current pricing.*
 
@@ -194,14 +197,14 @@ python alfred.py ask "What is 2+2?"
 - **Ollama + qwen3:4b** - Fast, no cost, privacy
 
 ### For Production/Quality:
-- **OpenAI gpt-4o-mini** - Best cost/performance ratio
-- **Anthropic Claude 3.5 Sonnet** - Excellent at following instructions
-- **Google Gemini 2.5 Flash** - Free tier, very fast
+- **OpenAI gpt-4.1-mini** - Best cost/performance ratio
+- **Anthropic claude-sonnet-4-6** - Excellent at following instructions
+- **Google gemini-2.5-flash** - Free tier, very fast
 
 ### For Advanced Tasks:
-- **OpenAI gpt-4o** - Complex reasoning
-- **Anthropic Claude 3.5 Sonnet** - Long documents, precise instructions
-- **Google Gemini 2.5 Pro** - Large context, multimodal
+- **OpenAI gpt-4.1** - Complex reasoning, smartest non-reasoning model
+- **Anthropic claude-opus-4-6** - Most intelligent, long documents, precise instructions
+- **Google gemini-2.5-pro** - Large context, multimodal
 
 ## Advanced: Environment Variables
 
@@ -209,7 +212,7 @@ You can override settings via environment variables:
 
 ```bash
 # One-time override
-AI_PROVIDER=anthropic AI_MODEL=claude-3-5-haiku-20241022 python alfred.py summarize file.txt
+AI_PROVIDER=anthropic AI_MODEL=claude-haiku-4-5 python alfred.py summarize file.txt
 
 # Or set in your shell
 export AI_PROVIDER=openai

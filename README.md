@@ -76,17 +76,17 @@ OLLAMA_API_BASE=http://localhost:11434
 
 # OpenAI
 AI_PROVIDER=openai
-AI_MODEL=gpt-4o-mini
+AI_MODEL=gpt-4.1-mini
 OPENAI_API_KEY=sk-...
 
 # Anthropic Claude
 AI_PROVIDER=anthropic
-AI_MODEL=claude-3-5-sonnet-20241022
+AI_MODEL=claude-sonnet-4-6
 ANTHROPIC_API_KEY=sk-ant-...
 
 # Google Gemini
 AI_PROVIDER=google
-AI_MODEL=gemini-2.0-flash
+AI_MODEL=gemini-2.5-flash
 GOOGLE_API_KEY=your-google-api-key-here
 ```
 

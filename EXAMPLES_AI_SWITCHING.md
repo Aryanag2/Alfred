@@ -40,7 +40,7 @@ When you need higher quality responses:
 ```bash
 # Get API key from https://platform.openai.com/api-keys
 AI_PROVIDER=openai
-AI_MODEL=gpt-4o-mini
+AI_MODEL=gpt-4.1-mini  # fast and affordable; use gpt-4.1 for harder tasks
 TEMPERATURE=0.2
 
 OPENAI_API_KEY=sk-proj-...
@@ -60,7 +60,7 @@ For analyzing large files or precise instructions:
 **Update `.env`:**
 ```bash
 AI_PROVIDER=anthropic
-AI_MODEL=claude-3-5-haiku-20241022  # Fast and affordable
+AI_MODEL=claude-haiku-4-5  # Fast and affordable; use claude-sonnet-4-6 for best quality
 TEMPERATURE=0.2
 
 ANTHROPIC_API_KEY=sk-ant-...
@@ -96,11 +96,11 @@ python alfred.py summarize *.txt
 No need to edit `.env` - override for a single command:
 
 ```bash
-# Use GPT-4 for one command
-AI_PROVIDER=openai AI_MODEL=gpt-4o python alfred.py ask "complex task"
+# Use GPT-4.1 for one command
+AI_PROVIDER=openai AI_MODEL=gpt-4.1 python alfred.py ask "complex task"
 
 # Use Claude for another
-AI_PROVIDER=anthropic AI_MODEL=claude-3-5-sonnet-20241022 python alfred.py summarize bigfile.pdf
+AI_PROVIDER=anthropic AI_MODEL=claude-sonnet-4-6 python alfred.py summarize bigfile.pdf
 
 # Back to Ollama
 AI_PROVIDER=ollama AI_MODEL=llama3.2 python alfred.py organize ~/Downloads
@@ -116,8 +116,8 @@ echo "What is the capital of France?" > test.txt
 
 # Test with different providers
 AI_PROVIDER=ollama AI_MODEL=qwen3:4b python alfred.py summarize test.txt
-AI_PROVIDER=openai AI_MODEL=gpt-4o-mini python alfred.py summarize test.txt
-AI_PROVIDER=anthropic AI_MODEL=claude-3-5-haiku-20241022 python alfred.py summarize test.txt
+AI_PROVIDER=openai AI_MODEL=gpt-4.1-mini python alfred.py summarize test.txt
+AI_PROVIDER=anthropic AI_MODEL=claude-haiku-4-5 python alfred.py summarize test.txt
 AI_PROVIDER=google AI_MODEL=gemini-2.5-flash python alfred.py summarize test.txt
 ```
 
@@ -142,11 +142,11 @@ ANTHROPIC_API_KEY=sk-ant-...
 python alfred.py organize ~/Desktop
 
 # Important document: Use Claude (high quality)
-AI_PROVIDER=anthropic AI_MODEL=claude-3-5-sonnet-20241022 \
+AI_PROVIDER=anthropic AI_MODEL=claude-sonnet-4-6 \
   python alfred.py summarize important_report.pdf
 
-# Batch rename: Use GPT-4 mini (fast, good)
-AI_PROVIDER=openai AI_MODEL=gpt-4o-mini \
+# Batch rename: Use GPT-4.1 mini (fast, good)
+AI_PROVIDER=openai AI_MODEL=gpt-4.1-mini \
   python alfred.py rename *.jpg --confirm
 ```
 
@@ -164,7 +164,7 @@ TEMPERATURE=0.3  # More creative for testing
 ```bash
 # Use reliable cloud provider for production
 AI_PROVIDER=openai
-AI_MODEL=gpt-4o
+AI_MODEL=gpt-4.1
 TEMPERATURE=0.1  # More deterministic
 OPENAI_API_KEY=sk-...
 ```
@@ -191,11 +191,11 @@ AI_PROVIDER=ollama AI_MODEL=qwen3:4b
 # Cheap: Gemini Flash (free tier: 1M tokens/day)
 AI_PROVIDER=google AI_MODEL=gemini-2.5-flash
 
-# Balanced: GPT-4o-mini ($0.15/$0.60 per 1M)
-AI_PROVIDER=openai AI_MODEL=gpt-4o-mini
+# Balanced: GPT-4.1-mini ($0.40/$1.60 per 1M)
+AI_PROVIDER=openai AI_MODEL=gpt-4.1-mini
 
-# Premium: Claude Sonnet ($3/$15 per 1M)
-AI_PROVIDER=anthropic AI_MODEL=claude-3-5-sonnet-20241022
+# Premium: Claude Sonnet 4.6 ($3/$15 per 1M)
+AI_PROVIDER=anthropic AI_MODEL=claude-sonnet-4-6
 ```
 
 ## Example 10: Fallback Strategy
@@ -218,7 +218,7 @@ fi
 # If Gemini fails, use OpenAI (paid)
 if [ $? -ne 0 ]; then
   echo "Gemini unavailable, using OpenAI..."
-  AI_PROVIDER=openai AI_MODEL=gpt-4o-mini python alfred.py "$@"
+  AI_PROVIDER=openai AI_MODEL=gpt-4.1-mini python alfred.py "$@"
 fi
 ```
 
@@ -278,7 +278,7 @@ tail -f ~/Desktop/alfred_debug.log | grep "Using.*provider"
 ollama serve
 
 # Or switch to cloud provider
-AI_PROVIDER=openai AI_MODEL=gpt-4o-mini python alfred.py ...
+AI_PROVIDER=openai AI_MODEL=gpt-4.1-mini python alfred.py ...
 ```
 
 **"API key error"**
