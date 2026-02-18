@@ -137,6 +137,26 @@ cp "swift-alfred/.build/release/Alfred" "${APP_BUNDLE}/Contents/MacOS/Alfred"
 chmod +x "${APP_BUNDLE}/Contents/MacOS/Alfred"
 ok "Swift binary placed at ${APP_BUNDLE}/Contents/MacOS/Alfred"
 
+# ── Step 8: sign the app (ad-hoc) ────────────────────────────────────────────
+# Ad-hoc signing (-s -) is free and requires no Apple Developer account.
+# It prevents the "app is damaged" Gatekeeper error on the build machine.
+# For distribution to other Macs, a full Developer ID signature is needed.
+bold "Step 8 — Ad-hoc code signing..."
+# Sign all bundled .dylib and .so files first (inside-out order required)
+find "${APP_BUNDLE}" \( -name "*.so" -o -name "*.dylib" \) | while read -r f; do
+    codesign --force --sign - "$f" 2>/dev/null || true
+done
+# Sign the main binary
+codesign --force --sign - "${APP_BUNDLE}/Contents/MacOS/Alfred" 2>/dev/null || true
+# Sign the whole bundle
+codesign --force --deep --sign - "${APP_BUNDLE}" 2>/dev/null \
+    && ok "App signed (ad-hoc)" \
+    || info "codesign not available — skipping (run xcode-select --install)"
+
+# Strip quarantine flag so macOS doesn't block the app on first launch
+xattr -cr "${APP_BUNDLE}" 2>/dev/null || true
+ok "Quarantine flag cleared"
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 bold "Build complete!"
@@ -148,4 +168,9 @@ echo "    open ${APP_BUNDLE}"
 echo ""
 echo "  To distribute, drag Alfred.app to /Applications or zip it:"
 echo "    zip -r Alfred.zip ${APP_BUNDLE}"
+echo ""
+echo "  Note: ad-hoc signing works on this machine. To distribute to other Macs"
+echo "  without a Gatekeeper prompt, sign with a Developer ID certificate:"
+echo "    codesign --force --deep --sign \"Developer ID Application: Name (TEAMID)\" ${APP_BUNDLE}"
+echo "    xcrun notarytool submit Alfred.zip --apple-id you@example.com --wait"
 echo ""
