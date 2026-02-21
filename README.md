@@ -17,10 +17,15 @@
 
 ### Option A — Download the pre-built app (recommended)
 
-1. Download `Alfred.app.zip` from the [Releases](https://github.com/yourusername/Alfred/releases) page.
-2. Unzip and drag **Alfred.app** to your `/Applications` folder.
-3. Double-click to launch. Alfred appears in your menu bar.
-4. *(First launch only)* macOS may show a security prompt — go to **System Settings → Privacy & Security → Open Anyway**.
+1. Download `Alfred.app.zip` from the [Releases](https://github.com/Aryanag2/Alfred/releases) page.
+2. Unzip it — you'll see `Alfred.app` and `install.sh` side by side.
+3. Open **Terminal**, `cd` to the unzipped folder, and run:
+   ```bash
+   bash install.sh
+   ```
+4. Alfred is now in `/Applications`. Double-click to launch — it appears in your menu bar.
+
+> **Why the install script?** Alfred is not signed with a paid Apple Developer certificate, so macOS Gatekeeper will show "Alfred is damaged" if you double-click it directly. `install.sh` removes that restriction in one step. No password required.
 
 > No Python, no Homebrew, no pip. Everything is bundled inside the app.
 
@@ -226,7 +231,7 @@ Alfred/
 │   ├── alfred.py             # Python CLI backend (all conversion + AI logic)
 │   ├── requirements.txt      # Python dependencies (bundled into .app by build.sh)
 │   ├── .env.example          # AI provider configuration template
-│   └── tests/                # Test suite (160 tests)
+│   └── tests/                # Test suite (192 tests)
 ├── swift-alfred/
 │   ├── Sources/Alfred/
 │   │   ├── AlfredApp.swift   # App entry point, menu bar NSStatusItem
@@ -245,7 +250,7 @@ Alfred/
 cd cli
 source venv/bin/activate
 pytest tests/ -v
-# 160 tests
+# 192 tests
 ```
 
 ---
