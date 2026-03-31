@@ -15,32 +15,19 @@
 
 ## Installation
 
-### Option A — Download the pre-built app (recommended)
+### Requirements
 
-1. Download `Alfred.app.zip` from the [Releases](https://github.com/Aryanag2/Alfred/releases) page.
-2. Unzip it — you'll see `Alfred.app` and `install.sh` side by side.
-3. Open **Terminal**, `cd` to the unzipped folder, and run:
-   ```bash
-   bash install.sh
-   ```
-4. Alfred is now in `/Applications`. Double-click to launch — it appears in your menu bar.
-
-> **Why the install script?** Alfred is not signed with a paid Apple Developer certificate, so macOS Gatekeeper will show "Alfred is damaged" if you double-click it directly. `install.sh` removes that restriction in one step. No password required.
-
-> No Python, no Homebrew, no pip. Everything is bundled inside the app.
-
-### Option B — Build from source
-
-**Requirements (developer machine only, not needed by end users):**
 - macOS 13 or later (Apple Silicon — ARM64)
 - Xcode Command Line Tools: `xcode-select --install`
-- Internet access (first run downloads ~45 MB standalone Python)
+- Internet access (first build downloads ~45 MB standalone Python)
 
 > **Intel Mac users:** `build.sh` defaults to the `aarch64` (Apple Silicon) Python build. Edit the `PYTHON_ARCH` variable at the top of `build.sh` to `x86_64-apple-darwin` before running.
 
+### Build & Install
+
 ```bash
 # 1. Clone
-git clone https://github.com/yourusername/Alfred.git
+git clone https://github.com/Aryanag2/Alfred.git
 cd Alfred
 
 # 2. (Optional) configure AI provider
@@ -50,8 +37,11 @@ cp cli/.env.example cli/.env
 # 3. Build everything (downloads Python, installs deps, builds Swift app)
 ./build.sh
 
-# 4. Launch
-open swift-alfred/Alfred.app
+# 4. Install to /Applications
+bash install.sh
+
+# 5. Launch
+open /Applications/Alfred.app
 ```
 
 `build.sh` handles everything automatically:
@@ -59,13 +49,15 @@ open swift-alfred/Alfred.app
 - Creates a venv inside `Alfred.app` and installs all Python dependencies
 - Copies `alfred.py` into the bundle
 - Builds the Swift app
-- The result is a fully self-contained `Alfred.app` — zip it up and share it
+- The result is a fully self-contained `Alfred.app`
 
 For subsequent builds after code changes:
 ```bash
 ./build.sh          # incremental (uses cached Python)
 ./build.sh --clean  # full rebuild from scratch
 ```
+
+> **Why install.sh?** Alfred is not signed with a paid Apple Developer certificate, so macOS Gatekeeper will flag the app. `install.sh` removes that restriction and copies it to `/Applications` in one step.
 
 ---
 
@@ -81,7 +73,7 @@ OLLAMA_API_BASE=http://localhost:11434
 
 # OpenAI
 AI_PROVIDER=openai
-AI_MODEL=gpt-5-mini   # or gpt-5.2 for flagship
+AI_MODEL=gpt-5-mini
 OPENAI_API_KEY=sk-...
 
 # Anthropic Claude
@@ -91,13 +83,13 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 # Google Gemini
 AI_PROVIDER=google
-AI_MODEL=gemini-2.5-pro   # or gemini-3-pro-preview (preview)
+AI_MODEL=gemini-2.5-pro
 GOOGLE_API_KEY=your-google-api-key-here
 ```
 
 For Ollama (local AI): install from [ollama.com](https://ollama.com), then `ollama pull qwen3:4b`.
 
-See [AI_PROVIDERS.md](AI_PROVIDERS.md) for full details.
+See [AI_PROVIDERS.md](AI_PROVIDERS.md) for full setup details and cost comparison.
 
 ---
 
@@ -227,19 +219,20 @@ python alfred.py ask "compress all images in this folder to 80% quality" ~/Photo
 ```
 Alfred/
 ├── build.sh                  # Build script — assembles self-contained Alfred.app
+├── install.sh                # Installer — removes quarantine + copies to /Applications
 ├── cli/
 │   ├── alfred.py             # Python CLI backend (all conversion + AI logic)
 │   ├── requirements.txt      # Python dependencies (bundled into .app by build.sh)
 │   ├── .env.example          # AI provider configuration template
+│   ├── agents/               # LLM agent system prompts
 │   └── tests/                # Test suite (192 tests)
 ├── swift-alfred/
 │   ├── Sources/Alfred/
 │   │   ├── AlfredApp.swift   # App entry point, menu bar NSStatusItem
-│   │   └── AlfredView.swift  # SwiftUI UI — uses bundle-relative Python paths
-│   ├── Alfred.app/           # Pre-built app bundle (populated by build.sh)
+│   │   └── AlfredView.swift  # SwiftUI UI
+│   ├── Alfred.app/           # App bundle (populated by build.sh)
 │   └── Package.swift
-├── AI_PROVIDERS.md
-└── EXAMPLES_AI_SWITCHING.md
+└── AI_PROVIDERS.md           # Provider setup guide
 ```
 
 ---
@@ -248,26 +241,26 @@ Alfred/
 
 ```bash
 cd cli
-source venv/bin/activate
+pip install -r requirements.txt
 pytest tests/ -v
 # 192 tests
 ```
 
 ---
 
-## Distributing Alfred.app
+## Distributing
 
 After running `./build.sh`, the `.app` is fully self-contained:
 
 ```bash
 # Zip for sharing
-zip -r Alfred.zip swift-alfred/Alfred.app
+zip -r Alfred.zip swift-alfred/Alfred.app install.sh
 
-# Or copy to Applications
-cp -R swift-alfred/Alfred.app /Applications/Alfred.app
+# Recipients just unzip and run:
+#   bash install.sh
 ```
 
-For notarization (App Store / Gatekeeper signing), sign all bundled `.so` files and the app:
+For notarization (removes Gatekeeper warnings entirely), sign all bundled `.so` files and the app with a Developer ID:
 
 ```bash
 find swift-alfred/Alfred.app -name "*.so" -o -name "*.dylib" | while read f; do
@@ -287,14 +280,6 @@ xcrun stapler staple swift-alfred/Alfred.app
 3. Run tests: `cd cli && pytest tests/`
 4. Commit: `git commit -s -m "Add my feature"`
 5. Push and open a Pull Request
-
----
-
-## Documentation
-
-- [AI_PROVIDERS.md](AI_PROVIDERS.md) — Ollama, OpenAI, Anthropic, Google setup
-- [EXAMPLES_AI_SWITCHING.md](EXAMPLES_AI_SWITCHING.md) — provider switching examples
-- [AGENTS.md](AGENTS.md) — guidelines for AI agents working on this project
 
 ---
 

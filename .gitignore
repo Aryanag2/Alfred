@@ -13,9 +13,10 @@ dist/
 *.egg-info/
 .pytest_cache/
 
-# Environment
+# Environment / Secrets
 .env
 *.env.local
+cli/litellm_config.yaml
 
 # IDE
 .vscode/
@@ -45,13 +46,33 @@ output.csv
 .coverage
 htmlcov/
 
-# PyInstaller
+# PyInstaller (legacy)
 *.spec
 *.manifest
 
-# App bundle (we'll commit the structure but not the binary)
+# App bundle (commit the structure but not build artifacts)
 swift-alfred/Alfred.app/Contents/MacOS/Alfred
 swift-alfred/Alfred.app/Contents/Resources/bin/alfred-cli
+swift-alfred/Alfred.app/Contents/Resources/alfred.py
+swift-alfred/Alfred.app/Contents/Resources/agents/
+swift-alfred/Alfred.app/Contents/Resources/python/
+swift-alfred/Alfred.app/Contents/Resources/.env
+swift-alfred/Alfred.app/Contents/_CodeSignature/
+
+# Distribution binaries
+Alfred.app.zip
+
+# Dev-only files (keep local, not in public repo)
+_Old/
+PROJECT_STATUS.md
+VISION_UPDATE.md
+QUICK_START_VISION.md
+EXAMPLES_AI_SWITCHING.md
+dev.sh
+cli/verify_litellm.py
+cli/test.txt
+cli/example.csv
+cli/example.json
 
 # Temporary files
 *.tmp
